@@ -69,7 +69,7 @@ def buildbracemap(code):
             bracemap[position] = start
     return bracemap
 
-def generator():
+def generator(optimization=True):
     code = ''
     with open('bf_human.bf', 'r') as f: code = f.read()
 
@@ -85,7 +85,22 @@ def generator():
     code = code.replace('#prev_page', prev_page_code)
     code = code.replace('#next_page', next_page_code)
 
-    with open('bf.bf', 'w') as f: f.write(cleanup(code))
+    code = cleanup(code)
+
+    if optimization:
+        changed = True
+        while changed:
+            changed = False
+            new = code.replace('<>', '')
+            new = new.replace('><', '')
+            new = new.replace('+-', '')
+            new = new.replace('-+', '')
+            if new != code:
+                changed = True
+            code = new
+            
+
+    with open('bf.bf', 'w') as f: f.write(code)
 
 
 def run_bf_in_bf(prog, input):

@@ -1,0 +1,76 @@
+page: [ page values | global values | temp values ]
+      [ $page_number $inst_or_value | $ip $tp $value_on_head $ax |  $t1 $t2 ]
+
+
+--------------------------------------
+
+generate_instuction_pages
+set_ip_and_tp
+go_page_0
+
+while $inst_or_value {
+    if $inst_or_value == '+' {
+        go_page_tp
+        add_inst_or_value
+        go_page_ip
+        add_ip
+        next_page
+    }
+    if $inst_or_value == '-' {
+        go_page_tp
+        sub_inst_or_value
+        go_page_ip
+        add_ip
+        next_page
+    }
+    if $isnt_or_value == '>' {
+        add_tp
+        add_ip
+        next_page
+    }
+    if $isnt_or_value == '<' {
+        sub_tp
+        add_ip
+        next_page
+    }
+    if $inst_or_value == '[' {
+        go_page_tp
+        load_value_on_head
+        go_page_ip
+        $ax = 1
+
+        if $value_on_head { $ax = 0 }
+        add_ip
+        next_page
+
+        while $ax {
+            if $inst_or_value == '[' { add_ax }
+            if $inst_or_value == ']' { sub_ax }
+            add_ip
+            next_page
+        }
+    }
+    if $inst_or_value == ']' {
+        $ax = -1
+        while $ax {
+            sub_ip
+            prev_page
+            if $inst_or_value == '[' { add_ax }
+            if $inst_or_value == ']' { sub_ax }
+        }
+    }
+    if $inst_or_value == ',' {
+        go_page_tp
+        read_inst_or_value
+        go_page_ip
+        add_ip
+        next_page
+    }
+    if $inst_or_value == '.' {
+        go_page_tp
+        write_inst_or_value
+        go_page_ip
+        add_ip
+        next_page
+    }
+}

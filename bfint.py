@@ -1,3 +1,5 @@
+DEBUGGER_COUNT = 1
+
 def evaluate(code, input, verbose=False):
     fi, output = 0, []
     def getch():
@@ -25,11 +27,11 @@ def evaluate(code, input, verbose=False):
         if command == "!":
             print('! cells:', end='')
             for i in range(len(cells)):
-                if i % 8 == 0: print('\n    ', end='')
+                if i % 10 == 0: print('\n    ', end='')
                 print(f'{cells[i]:02X} ', end='')
             print(f'\n  ip: {codeptr}, tp: {cellptr}')
             expcounter += 1
-            if expcounter == 50: exit(1)
+            if expcounter == DEBUGGER_COUNT: exit(1)
         if command == ">":
             cellptr += 1
             if cellptr == len(cells): cells.append(0)
@@ -69,9 +71,9 @@ def buildbracemap(code):
             bracemap[position] = start
     return bracemap
 
-def generator(optimization=True):
+def generator(input='bf_human.bf', output='bf.bf', optimization=True):
     code = ''
-    with open('bf_human.bf', 'r') as f: code = f.read()
+    with open(input, 'r') as f: code = f.read()
 
     prev_page_code = ''
     with open('prev_page_human.bf', 'r') as f: prev_page_code = f.read()
@@ -100,13 +102,13 @@ def generator(optimization=True):
             code = new
             
 
-    with open('bf.bf', 'w') as f: f.write(code)
+    with open(output, 'w') as f: f.write(code)
 
 
 def run_bf_in_bf(prog, input):
     code = ''
     with open('bf.bf', 'r') as f: code = f.read()
-    result = evaluate(code, [ord(c) for c in f'{prog}\0{input}'])
+    result = evaluate(code, [ord(c) for c in f'{prog}${input}'])
     print('result:')
     for r in result:
         print(chr(r), end='')
@@ -114,4 +116,4 @@ def run_bf_in_bf(prog, input):
 
 if __name__ == '__main__':
     generator()
-    # with open('input.txt', 'wb') as f: f.write(b'+[----->+++<]>+.---.+++++++..+++.\0')
+    run_bf_in_bf(',[.,]', 'Hello World\0')

@@ -1,11 +1,11 @@
 ; we assume that we are not in page_0 and we are on $page_number of current page
 
-; page:  $page_number $inst_or_value | $ip $tp $value_on_head $ax | $t1 $t2
+; page: $pn_hi $pn_lo $inst_or_value  |  $ax $tp_hi $tp_lo $ip_hi $ip_lo  |  $t1 $t2
 
-<<<  ; on $ax
-[-] <[-] <[-] <[-] ; prev $ip $tp $value_on_head $ax cleaned :: on prev $ip
->>>>>>>> [-<<<<<<<+<+>>>>>>>>] <<<<<<<[->>>>>>>+<<<<<<<] ; prev $ip set :: on prev $tp
->>>>>>>> [-<<<<<<<+<+>>>>>>>>] <<<<<<<[->>>>>>>+<<<<<<<] ; prev $tp set :: on prev $value_on_head
->>>>>>>> [-<<<<<<<+<+>>>>>>>>] <<<<<<<[->>>>>>>+<<<<<<<] ; prev $value_on_head set :: on prev $ax
->>>>>>>> [-<<<<<<<+<+>>>>>>>>] <<<<<<<[->>>>>>>+<<<<<<<] ; prev $ax set :: on prev $t1
-<<<<<<   ; on prev $page_number
+<<< [-] < [-] < [-] < [-] < [-]  ; : on prev $ax
+>>>>>>>>>> [- <<<<<<<<< + < + >>>>>>>>>>] <<<<<<<<< [- >>>>>>>>> + <<<<<<<<<]  ; : on prev $tp_hi
+>>>>>>>>>> [- <<<<<<<<< + < + >>>>>>>>>>] <<<<<<<<< [- >>>>>>>>> + <<<<<<<<<]  ; : on prev $tp_lo
+>>>>>>>>>> [- <<<<<<<<< + < + >>>>>>>>>>] <<<<<<<<< [- >>>>>>>>> + <<<<<<<<<]  ; : on prev $ip_hi
+>>>>>>>>>> [- <<<<<<<<< + < + >>>>>>>>>>] <<<<<<<<< [- >>>>>>>>> + <<<<<<<<<]  ; : on prev $ip_lo
+>>>>>>>>>> [- <<<<<<<<< + < + >>>>>>>>>>] <<<<<<<<< [- >>>>>>>>> + <<<<<<<<<]  ; : on prev $t1
+<<<<<<<<  ; : on prev $pn_hi

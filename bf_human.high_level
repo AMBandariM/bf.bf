@@ -1,6 +1,26 @@
-page: [ page values | global values | temp values ]
-      [ $page_number $inst_or_value | $ip $tp $value_on_head $ax |  $t1 $t2 ]
+page: [  page values  |  global values  |  temp values  ]
+      [  $pn_hi $pn_lo $inst_or_value  |  $ax $tp_hi $tp_lo $ip_hi $ip_lo  |  $t1 $t2  ]
 
+
+$rh $rl .. $tx
+add_r = {
+    ; assume on $rl and $tx=0
+    +
+    < + >
+    [<->
+        [- >..> ; goto $tx
+         + <..< ; bkto $rl]
+    ] >..> [- <..< + >..>] <..<
+}
+sub_r = {
+    ; assume on $rl and $tx=0
+    < - >
+    [<+>
+        [- >..> ; goto $tx
+         + <..< ; bkto $rl]
+    ] >..> [- <..< + >..>] <..<
+    -
+}
 
 --------------------------------------
 
@@ -35,11 +55,13 @@ while $inst_or_value {
     }
     if $inst_or_value == '[' {
         go_page_tp
-        load_value_on_head
+        load_value_on_ax
         go_page_ip
-        $ax = 1
-
-        if $value_on_head { $ax = 0 }
+        
+        $t1 = 1
+        if $ax { $ax = 0 and $t1 = 0 }
+        $ax <- $t1
+        
         add_ip
         next_page
 

@@ -1,345 +1,397 @@
-; page:  $page_number $inst_or_value | $ip $tp $value_on_head $ax | $t1 $t2
+page: $pn_hi $pn_lo $inst_or_value  |  $ax $tp_hi $tp_lo $ip_hi $ip_lo  |  $t1 $t2
 
+; generate_instuction_pages :: $ terminated
+>>,
+------------
+------------
+------------ ; fill first $inst_or_value
+> + <  ; set first $ax=1 so we can exploit it for go_page_0
 
-; generate_instuction_pages :: null terminated
->,  ; fill first $inst_or_value
 [   ; looping :: we are on $inst_or_value
+    < [->>>>>>>+>>>+<<<<<<<<<<] >>>>>>> [-<<<<<<<+>>>>>>>]          ; copied $pn_lo : on $t1
+    <<<<<<<< [->>>>>>>>+>>+<<<<<<<<<<] >>>>>>>> [-<<<<<<<<+>>>>>>>>] ; copied $pn_hi : on $t1
+    >>>  ; : on $pn_lo
 
-    <[->>>>>>>+>+<<<<<<<<]
-    >>>>>>>[-<<<<<<<+>>>>>>>]   ; copied $page_number
-    >+                          ; increment new $page_number
-    >,                          ; fill new $inst_or_value
-]
+    ; add one to $pn
+    +
+    < + >
+    [<->
+        [- >>>>>>> ; goto $tx
+         + <<<<<<< ; bkto $rl]
+    ] >>>>>>> [- <<<<<<< + >>>>>>>] <<<<<<<
+
+    >,
+    ------------
+    ------------
+    ------------                ; fill new $inst_or_value
+] ; : on $inst_or_value=0
+
 
 ; set_ip_and_tp
->>+<<<
-[->>+>+<<<] >>[-<<+>>]  ; $tp is set and $ip is correct :: we are on $ip
+< [- > + >>> + <<<<] > [- < + >]      ; copy $pn_lo to $tp_lo
+<< [ - >> + >> + <<<<] >> [- << + >>] ; copy $pn_hi to $tp_hi : on $inst_or_value
+>>>  ; : on $tp_lo
+; add one to $tp
++
+< + >
+[<->
+    [- > ; goto $tx
+     + < ; bkto $rl]
+] > [- < + >] <
 
+<<  ; : on $ax
 ; go_page_0
-<< [ ; looping :: we are on $page_number
-    #prev_page
-]
+- [ + 
+> [- <<<<<<<<<< + >>>>>>>>>>] > [- <<<<<<<<<< + >>>>>>>>>>] <<
+<<<<<<<<<< - ] <  ; : on $inst_or_value
 
-> [ ; main loop :: we are on $inst_or_value which should be inst :: going until null inst
+[  ; main loop :: we are on $inst_or_value which should be inst :: going until 0 inst ($)
+
 
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; if inst is add ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    >>>>>
-    --------
-    --------
-    --------
-    --------
-    -------- --- ; $t1=minus 43 :: 43 is add
-    <<<<< [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>]
+    >>>>>>
+    ------- ; $t1=minus 7 :: 7 is add
+    <<<<<< [- >>>>>> + > + <<<<<<<] >>>>>>> [- <<<<<<< + >>>>>>>]
     +            ; now $t2=1 and $t1 is 0 if inst is add :: on $t2
     < [>-<[-]]   ; now $t1=0 and $t2 is 0/1 = inst is add :: on $t1
     > [-         ; if inst is add
         ; go_page_tp
-        << [-] + ; init $ax with nonzero :: it's going to be $page_number~=$tp
+        <<<<<< [-] + ; init $ax with nonzero :: it's going to be $page_number~=$tp
         [
-            <<<<<
+            <<<
             #next_page
-            >>>>> [-] <<<<<                           ; zero init $ax
-            [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>] ; $ax=$page_number :: on $t1
-            <<< [->>->+<<<] >>> [-<<<+>>>]            ; $ax=$page_number minus $tp :: on $t1
-            < ; on $ax
+            >>> [-] <<<                                                                 ; zero init $ax : on $pn_hi
+            [- >>>>>>>> + > + <<<<<<<<<] >>>>>>>> [- <<<<<<<< + >>>>>>>>] <<<<          ; : on $tp_hi
+            [- >>>> + > - <<<<<] >>>> [- <<<< + >>>>] > [[-] <<<<<< + >>>>>>] <<<<<<<<  ; : on $pn_lo
+            [- >>>>>>> + > + <<<<<<<<] >>>>>>> [- <<<<<<< + >>>>>>>] <<<                ; : on $tp_lo
+            [- >>> + > - <<<<] >>> [- <<< + >>>] > [[-] <<<<<< + >>>>>>] <<<<<<         ; $t1=$t2=0 : on $ax=computed
         ] ; on $ax=0
         
+        ; add one to $ip
+        >>>>
+        +
+        < + >
+        [<->
+            [- > ; goto $tx
+            + < ; bkto $rl]
+        ] > [- < + >] <
+        
         ; add_inst_or_value
-        <<<< +  ; just added to value
+        <<<<< +  ; just added to value
 
         ; go_page_ip
-        >>>> [-] + ; init $ax with nonzero :: it's going to be $page_number~=$ip
+        > [-] + ; init $ax with nonzero :: it's going to be $page_number~=$ip
         [
-            <<<<<
+            <<<
             #prev_page
-            >>>>> [-] <<<<<                           ; zero init $ax
-            [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>] ; $ax=$page_number :: on $t1
-            <<<< [->>>->+<<<<] >>>> [-<<<<+>>>>]      ; $ax=$page_number minus $ip :: on $t1
-            < ; on $ax
+            >>> [-] <<<                               ; zero init $ax
+            [- >>>>>>>> + > + <<<<<<<<<] >>>>>>>> [- <<<<<<<< + >>>>>>>>] <<            ; : on $tp_hi
+            [- >> + > - <<<] >> [- << + >>] > [[-] <<<<<< + >>>>>>] <<<<<<<<            ; : on $pn_lo
+            [- >>>>>>> + > + <<<<<<<<] >>>>>>> [- <<<<<<< + >>>>>>>] <                  ; : on $tp_lo
+            [- > + > - <<] > [- < + >] > [[-] <<<<<< + >>>>>>] <<<<<<                   ; $t1=$t2=0 : on $ax=computed
         ] ; on $ax=0
-        <<< + ; add_ip
-        << #next_page
-        >>>>>>>  ; on $t2 to be consistant
-    ]; <<<<<< $t1 and $t2 are clear here :: on $inst_or_value
+        >>>>>>  ; on $t2 to be consistant
+    ]; <<<<<<< $t1 and $t2 are clear here :: on $inst_or_value
+
 
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; if inst is sub ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    >>>>>
-    --------
-    --------
-    --------
-    --------
-    -------- ----- ; $t1=minus 45 :: 45 is sub
-    <<<<< [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>]
+    >>>>>>
+    --------- ; $t1=minus 9 :: 9 is sub
+    <<<<<< [- >>>>>> + > + <<<<<<<] >>>>>>> [- <<<<<<< + >>>>>>>]
     +            ; now $t2=1 and $t1 is 0 if inst is sub :: on $t2
     < [>-<[-]]   ; now $t1=0 and $t2 is 0/1 = inst is sub :: on $t1
     > [-         ; if inst is sub
         ; go_page_tp
-        << [-] + ; init $ax with nonzero :: it's going to be $page_number~=$tp
+        <<<<<< [-] + ; init $ax with nonzero :: it's going to be $page_number~=$tp
         [
-            <<<<<
+            <<<
             #next_page
-            >>>>> [-] <<<<<                           ; zero init $ax
-            [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>] ; $ax=$page_number :: on $t1
-            <<< [->>->+<<<] >>> [-<<<+>>>]            ; $ax=$page_number minus $tp :: on $t1
-            < ; on $ax
+            >>> [-] <<<                                                                 ; zero init $ax : on $pn_hi
+            [- >>>>>>>> + > + <<<<<<<<<] >>>>>>>> [- <<<<<<<< + >>>>>>>>] <<<<          ; : on $tp_hi
+            [- >>>> + > - <<<<<] >>>> [- <<<< + >>>>] > [[-] <<<<<< + >>>>>>] <<<<<<<<  ; : on $pn_lo
+            [- >>>>>>> + > + <<<<<<<<] >>>>>>> [- <<<<<<< + >>>>>>>] <<<                ; : on $tp_lo
+            [- >>> + > - <<<<] >>> [- <<< + >>>] > [[-] <<<<<< + >>>>>>] <<<<<<         ; $t1=$t2=0 : on $ax=computed
         ] ; on $ax=0
         
-        ; sub_inst_or_value
-        <<<< -  ; just subtracted from value
+        ; add one to $ip
+        >>>>
+        +
+        < + >
+        [<->
+            [- > ; goto $tx
+            + < ; bkto $rl]
+        ] > [- < + >] <
+        
+        ; add_inst_or_value
+        <<<<< -  ; just added to value
 
         ; go_page_ip
-        >>>> [-] + ; init $ax with nonzero :: it's going to be $page_number~=$ip
+        > [-] + ; init $ax with nonzero :: it's going to be $page_number~=$ip
         [
-            <<<<<
+            <<<
             #prev_page
-            >>>>> [-] <<<<<                           ; zero init $ax
-            [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>] ; $ax=$page_number :: on $t1
-            <<<< [->>>->+<<<<] >>>> [-<<<<+>>>>]      ; $ax=$page_number minus $ip :: on $t1
-            < ; on $ax
+            >>> [-] <<<                               ; zero init $ax
+            [- >>>>>>>> + > + <<<<<<<<<] >>>>>>>> [- <<<<<<<< + >>>>>>>>] <<            ; : on $tp_hi
+            [- >> + > - <<<] >> [- << + >>] > [[-] <<<<<< + >>>>>>] <<<<<<<<            ; : on $pn_lo
+            [- >>>>>>> + > + <<<<<<<<] >>>>>>> [- <<<<<<< + >>>>>>>] <                  ; : on $tp_lo
+            [- > + > - <<] > [- < + >] > [[-] <<<<<< + >>>>>>] <<<<<<                   ; $t1=$t2=0 : on $ax=computed
         ] ; on $ax=0
-        <<< + ; add_ip
-        << #next_page
-        >>>>>>>  ; on $t2 to be consistant
-    ]; <<<<<< $t1 and $t2 are clear here :: on $inst_or_value
+        >>>>>>  ; on $t2 to be consistant
+    ]; <<<<<<< $t1 and $t2 are clear here :: on $inst_or_value
+
 
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; if inst is right ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    >>>>>
-    ------------
-    ------------
-    ------------
-    ------------
-    ------------ -- ; $t1=minus 62 :: 62 is right
-    <<<<< [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>]
+    >>>>>>
+    ------------- -------------  ; $t1=minus 26 :: 26 is right
+    <<<<<< [- >>>>>> + > + <<<<<<<] >>>>>>> [- <<<<<<< + >>>>>>>]
     +            ; now $t2=1 and $t1 is 0 if inst is right :: on $t2
     < [>-<[-]]   ; now $t1=0 and $t2 is 0/1 = inst is right :: on $t1
     > [-         ; if inst is right
-        ; add_tp
-        <<<< +
         ; add_ip
-        < +
-        << #next_page
-        >>>>>>>  ; on $t2 to be consistant
-    ]; <<<<<< $t1 and $t2 are clear here :: on $inst_or_value
+        <<
+        +
+        < + >
+        [<->
+            [- > ; goto $tx
+            + < ; bkto $rl]
+        ] > [- < + >] <
+
+        ; add_tp
+        << 
+        +
+        < + >
+        [<->
+            [- >>> ; goto $tx
+            + <<< ; bkto $rl]
+        ] >>> [- <<< + >>>] <<<
+
+        <<<<< #next_page
+        >>>>>>>>>  ; on $t2 to be consistant
+    ]; <<<<<<< $t1 and $t2 are clear here :: on $inst_or_value
+
 
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; if inst is left ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    >>>>>
-    ------------
-    ------------
-    ------------
-    ------------
-    ------------ ; $t1=minus 60 :: 60 is left
-    <<<<< [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>]
+    >>>>>>
+    ------------- -----------  ; $t1=minus 24 :: 24 is left
+    <<<<<< [- >>>>>> + > + <<<<<<<] >>>>>>> [- <<<<<<< + >>>>>>>]
     +            ; now $t2=1 and $t1 is 0 if inst is left :: on $t2
     < [>-<[-]]   ; now $t1=0 and $t2 is 0/1 = inst is left :: on $t1
     > [-         ; if inst is left
-        ; sub_tp
-        <<<< -
         ; add_ip
-        < +
-        << #next_page
-        >>>>>>>  ; on $t2 to be consistant
-    ]; <<<<<< $t1 and $t2 are clear here :: on $inst_or_value
+        <<
+        +
+        < + >
+        [<->
+            [- > ; goto $tx
+            + < ; bkto $rl]
+        ] > [- < + >] <
+
+        ; sub_tp
+        << 
+        < - >
+        [<+>
+            [- >>> ; goto $tx
+            + <<< ; bkto $rl]
+        ] >>> [- <<< + >>>] <<<
+        -
+        <<<<< #next_page
+        >>>>>>>>>  ; on $t2 to be consistant
+    ]; <<<<<<< $t1 and $t2 are clear here :: on $inst_or_value
+
 
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; if inst is obrac ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    >>>>>
-    ------------------
-    ------------------
-    ------------------
-    ------------------
-    ------------------ - ; $t1=minus 91 :: 91 is obrac
-    <<<<< [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>]
+    >>>>>>
+    ----------- ----------- ----------- ----------- -----------  ; $t1=minus 55 :: 55 is obrac
+    <<<<<< [- >>>>>> + > + <<<<<<<] >>>>>>> [- <<<<<<< + >>>>>>>]
     +            ; now $t2=1 and $t1 is 0 if inst is obrac :: on $t2
     < [>-<[-]]   ; now $t1=0 and $t2 is 0/1 = inst is obrac :: on $t1
     > [-         ; if inst is obrac
         ; go_page_tp
-        << [-] + ; init $ax with nonzero :: it's going to be $page_number~=$tp
+        <<<<<< [-] + ; init $ax with nonzero :: it's going to be $page_number~=$tp
         [
-            <<<<<
+            <<<
             #next_page
-            >>>>> [-] <<<<<                           ; zero init $ax
-            [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>] ; $ax=$page_number :: on $t1
-            <<< [->>->+<<<] >>> [-<<<+>>>]            ; $ax=$page_number minus $tp :: on $t1
-            < ; on $ax
+            >>> [-] <<<                                                                 ; zero init $ax : on $pn_hi
+            [- >>>>>>>> + > + <<<<<<<<<] >>>>>>>> [- <<<<<<<< + >>>>>>>>] <<<<          ; : on $tp_hi
+            [- >>>> + > - <<<<<] >>>> [- <<<< + >>>>] > [[-] <<<<<< + >>>>>>] <<<<<<<<  ; : on $pn_lo
+            [- >>>>>>> + > + <<<<<<<<] >>>>>>> [- <<<<<<< + >>>>>>>] <<<                ; : on $tp_lo
+            [- >>> + > - <<<<] >>> [- <<< + >>>] > [[-] <<<<<< + >>>>>>] <<<<<<         ; $t1=$t2=0 : on $ax=computed
         ] ; on $ax=0
-        
-        ; load_value_on_head
-        <<<< [->>>+>+<<<<] >>>> [-<<<<+>>>>]          ; value_on_head loaded :: on $ax=0
+        ; load_value_on_ax
+        < [->+ >>>>> + <<<<<<] >>>>>> [- <<<<<< + >>>>>>]  ; : on $t1=0
 
         ; go_page_ip
-        + ; init $ax with nonzero :: it's going to be $page_number~=$ip
+        + ; $t1=1 :: it's going to mean $pn~=$ip
         [
-            <<<<<
-            #prev_page
-            >>>>> [-] <<<<<                           ; zero init $ax
-            [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>] ; $ax=$page_number :: on $t1
-            <<<< [->>>->+<<<<] >>>> [-<<<<+>>>>]      ; $ax=$page_number minus $ip :: on $t1
-            < ; on $ax
-        ] ; on $ax=0
+            [-]
+            <<<<<<<< #prev_page 
+            [- >>>>>>>> + > + <<<<<<<<<] >>>>>>>> [- <<<<<<<< + >>>>>>>>] <<        ; : on $ip_hi
+            [- >> + > - <<<] >> [- << + >>] > [[-] >>>>>>>>> + <<<<<<<<<] <<<<<<<<  ; : on $pn_lo
+            [- >>>>>>> + > + <<<<<<<<] >>>>>>> [- <<<<<<< + >>>>>>>] <              ; : on $ip_lo
+            [- > + > - <<] > [- < + >] > [[-] >>>>>>>>> + <<<<<<<<<] <              ; : on $t1
+            >>>>>>>>>> [- <<<<<<<<<< + >>>>>>>>>>] <<<<<<<<<<                       ; : on $t1=calculated
+        ]; on $t1=0
 
-        + ; $ax=1
-        < [[-]  ; if $value_on_head :: consumed
-            > - ; $ax=0
-            <
-        ] ; on $value_on_head=0 :: $ax is we_should_continue
-        
-        << + << #next_page  ; add_ip and next_page
+        <<<<< [ [-] >>>>> + <<<<< ] + >>>>> [- <<<<< - >>>>> ] <<<<<  ; : on $ax=we_should_continue_skipping 
 
-        >>>>> [  ; while $ax
-            ; if $inst_or_value is not obrac: sub_ax
-            > ------------------
-              ------------------
-              ------------------
-              ------------------
-              ------------------ - ; $t1=minus 91 :: 91 is obrac
-            <<<<< [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>]  ; $t1 is $inst_or_value minus 91 :: on $t2=0
-            < [[-]  ; if $inst_or_value is not obrac :: consumed
-                < - > ; sub_ax
-            ]
+        <<< #next_page >>>
 
-            ; if $inst_or_value is not cbrac: add_ax
-            ------------------
-            ------------------
-            ------------------
-            ------------------
-            ------------------ --- ; $t1=minus 93 :: 93 is cbrac
-            <<<<< [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>]  ; $t1 is $inst_or_value minus 93 :: on $t2=0
-            < [[-]  ; if $inst_or_value is not cbrac :: consumed
-                < + > ; add_ax
-            ]
+        [  ; : on $ax=we_should_continue_skipping_counter
 
-            ; on $t1
-            <<<< + << #next_page >>>>>  ; add_ip and next_page
+            >>>>>>
+            ----------- ----------- ----------- ----------- -----------     ; $t2=minus 55 :: 55 is obrac
+            <<<<<<< [- >>>>>> + > + <<<<<<<] >>>>>> [- <<<<<< + >>>>>>] >   ; : on $t2=$inst_or_value minus 55
+            [ [-] <<<<<< - >>>>>> ]
+
+            ----------- ----------- ----------- ----------- -------------   ; $t2=minus 57 :: 57 is cbrac
+            <<<<<<< [- >>>>>> + > + <<<<<<<] >>>>>> [- <<<<<< + >>>>>>] >   ; : on $t2=$inst_or_value minus 57
+            [ [-] <<<<<< + >>>>>> ]
+
+            <<<<<<<<< #next_page >>>
         ]
-        >> ; go to $t2 to be consistant
-    ]; <<<<<< $t1 and $t2 are clear here :: on $inst_or_value
+        ; fix_ip : on $ax=0
+        >>> [-] > [-] <<<<
+        <<<     ; : on $pn_hi
+        [ - >>>>>> + > + <<<<<<< ] >>>>>>> [- <<<<<<< + >>>>>>>]        ; set $ip_hi : on $ip_lo
+        <<<<<<  ; : on $pn_lo
+        [ - >>>>>> + > + <<<<<<< ] >>>>>>> [- <<<<<<< + >>>>>>>]        ; set $ip_lo : on $t1
+
+        >  ; go to $t2 to be consistant
+    ]; <<<<<<< $t1 and $t2 are clear here :: on $inst_or_value
+
 
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; if inst is cbrac ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    >>>>>
-    ------------------
-    ------------------
-    ------------------
-    ------------------
-    ------------------ --- ; $t1=minus 93 :: 93 is cbrac
-    <<<<< [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>]
+    >>>>>>
+    ----------- ----------- ----------- ----------- ----------- --  ; $t1=minus 57 :: 57 is cbrac
+    <<<<<< [- >>>>>> + > + <<<<<<<] >>>>>>> [- <<<<<<< + >>>>>>>]
     +            ; now $t2=1 and $t1 is 0 if inst is cbrac :: on $t2
     < [>-<[-]]   ; now $t1=0 and $t2 is 0/1 = inst is cbrac :: on $t1
     > [-         ; if inst is cbrac
-        << [-] - ; $ax=FF
+        <<<<<< [-] -  ; : on $ax=255
 
-        [  ; while $ax
-            ; sub_ip and prev_page
-            <<< - << #prev_page 
-            ; if $inst_or_value is not obrac: sub_ax
-            >>>>>> ------------------
-                   ------------------
-                   ------------------
-                   ------------------
-                   ------------------ - ; $t1=minus 91 :: 91 is obrac
-            <<<<< [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>]  ; $t1 is $inst_or_value minus 91 :: on $t2=0
-            < [[-]  ; if $inst_or_value is not obrac :: consumed
-                < - > ; sub_ax
-            ]
+        [ ; while $ax
+            <<< #prev_page
+            >>>>>>>>>
+            ----------- ----------- ----------- ----------- -----------     ; $t2=minus 55 :: 55 is obrac
+            <<<<<<< [- >>>>>> + > + <<<<<<<] >>>>>> [- <<<<<< + >>>>>>] >   ; : on $t2=$inst_or_value minus 55
+            [ [-] <<<<<< - >>>>>> ]
 
-            ; if $inst_or_value is not cbrac: add_ax
-            ------------------
-            ------------------
-            ------------------
-            ------------------
-            ------------------ --- ; $t1=minus 93 :: 93 is cbrac
-            <<<<< [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>]  ; $t1 is $inst_or_value minus 93 :: on $t2=0
-            < [[-]  ; if $inst_or_value is not cbrac :: consumed
-                < + > ; add_ax
-            ]
-            <  ; on $ax 
+            ----------- ----------- ----------- ----------- -------------   ; $t2=minus 57 :: 57 is cbrac
+            <<<<<<< [- >>>>>> + > + <<<<<<<] >>>>>> [- <<<<<< + >>>>>>] >   ; : on $t2=$inst_or_value minus 57
+            [ [-] <<<<<< + >>>>>> ]
+            <<<<<<  ; : on $ax
         ]
-        >> ; go to $t2 to be consistant
-    ]; <<<<<< $t1 and $t2 are clear here :: on $inst_or_value
+        ; fix_ip : on $ax=0
+        >>> [-] > [-] <<<<
+        <<<     ; : on $pn_hi
+        [ - >>>>>> + > + <<<<<<< ] >>>>>>> [- <<<<<<< + >>>>>>>]        ; set $ip_hi : on $ip_lo
+        <<<<<<  ; : on $pn_lo
+        [ - >>>>>> + > + <<<<<<< ] >>>>>>> [- <<<<<<< + >>>>>>>]        ; set $ip_lo : on $t1
+
+        >  ; go to $t2 to be consistant
+
+    ]; <<<<<<< $t1 and $t2 are clear here :: on $inst_or_value
+
 
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; if inst is comma ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    >>>>>
-    --------
-    --------
-    --------
-    --------
-    -------- ---- ; $t1=minus 44 :: 44 is comma
-    <<<<< [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>]
+    >>>>>>
+    -------- ; $t1=minus 8 :: 8 is comma
+    <<<<<< [- >>>>>> + > + <<<<<<<] >>>>>>> [- <<<<<<< + >>>>>>>]
     +            ; now $t2=1 and $t1 is 0 if inst is comma :: on $t2
     < [>-<[-]]   ; now $t1=0 and $t2 is 0/1 = inst is comma :: on $t1
     > [-         ; if inst is comma
         ; go_page_tp
-        << [-] + ; init $ax with nonzero :: it's going to be $page_number~=$tp
+        <<<<<< [-] + ; init $ax with nonzero :: it's going to be $page_number~=$tp
         [
-            <<<<<
+            <<<
             #next_page
-            >>>>> [-] <<<<<                           ; zero init $ax
-            [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>] ; $ax=$page_number :: on $t1
-            <<< [->>->+<<<] >>> [-<<<+>>>]            ; $ax=$page_number minus $tp :: on $t1
-            < ; on $ax
+            >>> [-] <<<                                                                 ; zero init $ax : on $pn_hi
+            [- >>>>>>>> + > + <<<<<<<<<] >>>>>>>> [- <<<<<<<< + >>>>>>>>] <<<<          ; : on $tp_hi
+            [- >>>> + > - <<<<<] >>>> [- <<<< + >>>>] > [[-] <<<<<< + >>>>>>] <<<<<<<<  ; : on $pn_lo
+            [- >>>>>>> + > + <<<<<<<<] >>>>>>> [- <<<<<<< + >>>>>>>] <<<                ; : on $tp_lo
+            [- >>> + > - <<<<] >>> [- <<< + >>>] > [[-] <<<<<< + >>>>>>] <<<<<<         ; $t1=$t2=0 : on $ax=computed
         ] ; on $ax=0
         
-        ; add_inst_or_value
-        <<<< ,  ; just read to value
+        ; add one to $ip
+        >>>>
+        +
+        < + >
+        [<->
+            [- > ; goto $tx
+            + < ; bkto $rl]
+        ] > [- < + >] <
+        
+        ; get_inst_or_value
+        <<<<< ,  ; just read to value
 
         ; go_page_ip
-        >>>> [-] + ; init $ax with nonzero :: it's going to be $page_number~=$ip
+        > [-] + ; init $ax with nonzero :: it's going to be $page_number~=$ip
         [
-            <<<<<
+            <<<
             #prev_page
-            >>>>> [-] <<<<<                           ; zero init $ax
-            [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>] ; $ax=$page_number :: on $t1
-            <<<< [->>>->+<<<<] >>>> [-<<<<+>>>>]      ; $ax=$page_number minus $ip :: on $t1
-            < ; on $ax
+            >>> [-] <<<                               ; zero init $ax
+            [- >>>>>>>> + > + <<<<<<<<<] >>>>>>>> [- <<<<<<<< + >>>>>>>>] <<            ; : on $tp_hi
+            [- >> + > - <<<] >> [- << + >>] > [[-] <<<<<< + >>>>>>] <<<<<<<<            ; : on $pn_lo
+            [- >>>>>>> + > + <<<<<<<<] >>>>>>> [- <<<<<<< + >>>>>>>] <                  ; : on $tp_lo
+            [- > + > - <<] > [- < + >] > [[-] <<<<<< + >>>>>>] <<<<<<                   ; $t1=$t2=0 : on $ax=computed
         ] ; on $ax=0
-        <<< + ; add_ip
-        << #next_page
-        >>>>>>>  ; on $t2 to be consistant
-    ]; <<<<<< $t1 and $t2 are clear here :: on $inst_or_value
+        >>>>>>  ; on $t2 to be consistant
+    ]; <<<<<<< $t1 and $t2 are clear here :: on $inst_or_value
+
 
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; if inst is dot ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    >>>>>
-    --------
-    --------
-    --------
-    --------
-    -------- ------ ; $t1=minus 44 :: 44 is dot
-    <<<<< [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>]
+    >>>>>>
+    ---------- ; $t1=minus 10 :: 10 is dot
+    <<<<<< [- >>>>>> + > + <<<<<<<] >>>>>>> [- <<<<<<< + >>>>>>>]
     +            ; now $t2=1 and $t1 is 0 if inst is dot :: on $t2
     < [>-<[-]]   ; now $t1=0 and $t2 is 0/1 = inst is dot :: on $t1
     > [-         ; if inst is dot
         ; go_page_tp
-        << [-] + ; init $ax with nonzero :: it's going to be $page_number~=$tp
+        <<<<<< [-] + ; init $ax with nonzero :: it's going to be $page_number~=$tp
         [
-            <<<<<
+            <<<
             #next_page
-            >>>>> [-] <<<<<                           ; zero init $ax
-            [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>] ; $ax=$page_number :: on $t1
-            <<< [->>->+<<<] >>> [-<<<+>>>]            ; $ax=$page_number minus $tp :: on $t1
-            < ; on $ax
+            >>> [-] <<<                                                                 ; zero init $ax : on $pn_hi
+            [- >>>>>>>> + > + <<<<<<<<<] >>>>>>>> [- <<<<<<<< + >>>>>>>>] <<<<          ; : on $tp_hi
+            [- >>>> + > - <<<<<] >>>> [- <<<< + >>>>] > [[-] <<<<<< + >>>>>>] <<<<<<<<  ; : on $pn_lo
+            [- >>>>>>> + > + <<<<<<<<] >>>>>>> [- <<<<<<< + >>>>>>>] <<<                ; : on $tp_lo
+            [- >>> + > - <<<<] >>> [- <<< + >>>] > [[-] <<<<<< + >>>>>>] <<<<<<         ; $t1=$t2=0 : on $ax=computed
         ] ; on $ax=0
         
-        ; add_inst_or_value
-        <<<< .  ; just wrote to value
+        ; add one to $ip
+        >>>>
+        +
+        < + >
+        [<->
+            [- > ; goto $tx
+            + < ; bkto $rl]
+        ] > [- < + >] <
+        
+        ; put_inst_or_value
+        <<<<< .  ; just wrote the value
 
         ; go_page_ip
-        >>>> [-] + ; init $ax with nonzero :: it's going to be $page_number~=$ip
+        > [-] + ; init $ax with nonzero :: it's going to be $page_number~=$ip
         [
-            <<<<<
+            <<<
             #prev_page
-            >>>>> [-] <<<<<                           ; zero init $ax
-            [->>>>>+>+<<<<<<] >>>>>> [-<<<<<<+>>>>>>] ; $ax=$page_number :: on $t1
-            <<<< [->>>->+<<<<] >>>> [-<<<<+>>>>]      ; $ax=$page_number minus $ip :: on $t1
-            < ; on $ax
+            >>> [-] <<<                               ; zero init $ax
+            [- >>>>>>>> + > + <<<<<<<<<] >>>>>>>> [- <<<<<<<< + >>>>>>>>] <<            ; : on $tp_hi
+            [- >> + > - <<<] >> [- << + >>] > [[-] <<<<<< + >>>>>>] <<<<<<<<            ; : on $pn_lo
+            [- >>>>>>> + > + <<<<<<<<] >>>>>>> [- <<<<<<< + >>>>>>>] <                  ; : on $tp_lo
+            [- > + > - <<] > [- < + >] > [[-] <<<<<< + >>>>>>] <<<<<<                   ; $t1=$t2=0 : on $ax=computed
         ] ; on $ax=0
-        <<< + ; add_ip
-        << #next_page
-        >>>>>>>  ; on $t2 to be consistant
-    ]; <<<<<< $t1 and $t2 are clear here :: on $inst_or_value
+        >>>>>>  ; on $t2 to be consistant
+    ]; <<<<<<< $t1 and $t2 are clear here :: on $inst_or_value
+
+
+
 ]

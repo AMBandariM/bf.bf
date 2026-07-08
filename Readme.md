@@ -10,7 +10,7 @@ input format for `bf.bf` is f"{code}\${input}" (in python fstring). in other wor
 `bf_human.high_level` is a high level code that explains how this interpreter works. `bf_human.bf` is just `bf` with comments, for avoiding repeatition, contents of `next_page_human.bf` and `prev_page_human.bf` will replace `#next_page` and `#prev_page` in `bf_human.bf`, respectively.
 
 ## Performance
-it is BrainFuck in BrainFuck, so yes it is a little bit slow, specially if you use python for interpreting it! although I managed to interpret it on itself using a [JIT-compiler](https://github.com/t3tra-dev/bfjit) (make sure it has enough tape size -- you can use `./bfjit` on Linux) in a resonable amout of time:
+it can efficiently run itself using a [JIT-compiler](https://github.com/t3tra-dev/bfjit):
 ![screenshot](./screenshot.png)
 
 ## Security

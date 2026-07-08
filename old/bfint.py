@@ -1,4 +1,4 @@
-DEBUGGER_COUNT = 10
+DEBUGGER_COUNT = 1
 
 def evaluate(code, input, verbose=False):
     fi, output = 0, []
@@ -75,6 +75,18 @@ def generator(input='bf_human.bf', output='bf.bf', optimization=True):
     code = ''
     with open(input, 'r') as f: code = f.read()
 
+    prev_page_code = ''
+    with open('prev_page_human.bf', 'r') as f: prev_page_code = f.read()
+    prev_page_code = cleanup(prev_page_code)
+
+    next_page_code = ''
+    with open('next_page_human.bf', 'r') as f: next_page_code = f.read()
+    next_page_code = cleanup(next_page_code)
+
+
+    code = code.replace('#prev_page', prev_page_code)
+    code = code.replace('#next_page', next_page_code)
+
     code = cleanup(code)
 
     if optimization:
@@ -93,9 +105,9 @@ def generator(input='bf_human.bf', output='bf.bf', optimization=True):
     with open(output, 'w') as f: f.write(code)
 
 
-def run_bf_in_bf(prog, input, bfbf='bf.bf'):
+def run_bf_in_bf(prog, input):
     code = ''
-    with open(bfbf, 'r') as f: code = f.read()
+    with open('bf.bf', 'r') as f: code = f.read()
     result = evaluate(code, [ord(c) for c in f'{prog}${input}'])
     print('result:')
     for r in result:
@@ -103,5 +115,5 @@ def run_bf_in_bf(prog, input, bfbf='bf.bf'):
     print()
 
 if __name__ == '__main__':
-    generator(input='bf-short_human.bf', output='bf-short.bf')
-    run_bf_in_bf('++++', '\x01Hello World\0', bfbf='bf-short.bf')
+    generator()
+    run_bf_in_bf(',[.,]', 'Hello World\0')
